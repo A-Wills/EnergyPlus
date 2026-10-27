@@ -3171,10 +3171,10 @@ namespace AirflowNetwork {
         Real64 Fact;   // Opening factor
         // Real64 Slope;      // Opening slope
         // Real64 DischCoeff; // Discharge coefficient
-        Real64 fma12;      // massflow in direction "from-to" [kg/s]
-        Real64 fma21;      // massflow in direction "to-from" [kg/s]
-        Real64 dp1fma12;   // derivative d fma12 / d Dp [kg/s/Pa]
-        Real64 dp1fma21;   // derivative d fma21 / d Dp [kg/s/Pa]
+        //Real64 fma12;      // massflow in direction "from-to" [kg/s]
+        //Real64 fma21;      // massflow in direction "to-from" [kg/s]
+       // Real64 dp1fma12;   // derivative d fma12 / d Dp [kg/s/Pa]
+       // Real64 dp1fma21;   // derivative d fma21 / d Dp [kg/s/Pa]
         Real64 PurgedP;    // Purge pressure [Pa]
         Real64 BuoFlow;    // Buoyancy flow rate [Pa]
         Real64 BuoFlowMax; // Maximum buoyancy flow rate [Pa]
@@ -3182,6 +3182,7 @@ namespace AirflowNetwork {
         Real64 DH;         // Hydraulic diameter [m]
         Real64 Cshape;     // Shape factor [dimensionless]
         Real64 OpenArea;   // Opening area [m2]
+        int NF(1);          // Number of flow paths for element
 
         // Get information on the horizontal opening
         RhozAver = (propN.density + propM.density) / 2.0;
@@ -3202,65 +3203,70 @@ namespace AirflowNetwork {
             return 1;
         }
 
-        fma12 = 0.0;
-        fma21 = 0.0;
-        dp1fma12 = 0.0;
-        dp1fma21 = 0.0;
+        //fma12 = 0.0;
+        //fma21 = 0.0;
+        //dp1fma12 = 0.0;
+        //dp1fma21 = 0.0;
         BuoFlow = 0.0;
         dPBuoFlow = 0.0;
 
-        if (state.afn->AirflowNetworkLinkageData(i).NodeHeights[0] > state.afn->AirflowNetworkLinkageData(i).NodeHeights[1]) {
-            // Node N is upper zone
-            if (propN.density > propM.density) {
+        if ((state.afn->AirflowNetworkLinkageData(i).NodeHeights[0] > state.afn->AirflowNetworkLinkageData(i).NodeHeights[1] && propN.density > propM.density) || 
+            (state.afn->AirflowNetworkLinkageData(i).NodeHeights[0] > state.afn->AirflowNetworkLinkageData(i).NodeHeights[1] && propN.density < propM.density)) {
+
+        //    // Node N is upper zone
+        //    if (propN.density > propM.density) {
                 BuoFlowMax = RhozAver * 0.055 * std::sqrt(9.81 * std::abs(propN.density - propM.density) * pow_5(DH) / RhozAver);
                 PurgedP = Cshape * Cshape * 9.81 * std::abs(propN.density - propM.density) * pow_5(DH) / (2.0 * pow_2(OpenArea));
                 if (std::abs(PDROP) <= PurgedP) {
                     BuoFlow = BuoFlowMax * (1.0 - std::abs(PDROP) / PurgedP);
                     dPBuoFlow = BuoFlowMax / PurgedP;
+                    if (BuoFlow > 0.0) {
+                        NF = 2;
+                    }
                 }
-            }
-        } else {
-            // Node M is upper zone
-            if (propN.density < propM.density) {
-                BuoFlowMax = RhozAver * 0.055 * std::sqrt(9.81 * std::abs(propN.density - propM.density) * pow_5(DH) / RhozAver);
-                PurgedP = Cshape * Cshape * 9.81 * std::abs(propN.density - propM.density) * pow_5(DH) / (2.0 * pow_2(OpenArea));
-                if (std::abs(PDROP) <= PurgedP) {
-                    BuoFlow = BuoFlowMax * (1.0 - std::abs(PDROP) / PurgedP);
-                    dPBuoFlow = BuoFlowMax / PurgedP;
-                }
-            }
-        }
+        //    }
+        //} else {
+        //    // Node M is upper zone
+        //    if (propN.density < propM.density) {
+        //        BuoFlowMax = RhozAver * 0.055 * std::sqrt(9.81 * std::abs(propN.density - propM.density) * pow_5(DH) / RhozAver);
+        //        PurgedP = Cshape * Cshape * 9.81 * std::abs(propN.density - propM.density) * pow_5(DH) / (2.0 * pow_2(OpenArea));
+        //        if (std::abs(PDROP) <= PurgedP) {
+        //            BuoFlow = BuoFlowMax * (1.0 - std::abs(PDROP) / PurgedP);
+        //            dPBuoFlow = BuoFlowMax / PurgedP;
+        //        }
+        //    }
+        } // else nodes are at same height or have same density. Model as uni-directional flow
 
         if (PDROP == 0.0) {
-            fma12 = BuoFlow;
-            fma21 = BuoFlow;
-            dp1fma12 = 0.0;
-            dp1fma21 = 0.0;
+            F[0] = BuoFlow;
+            F[1] = -1.0 * BuoFlow;
+            DF[0] = -1.0 * dPBuoFlow;
+            DF[1] = dPBuoFlow;
         } else if (PDROP > 0.0) {
-            fma12 = propN.density * OpenArea * Fact * DischCoeff * std::sqrt(2.0 * PDROP / RhozAver) + BuoFlow;
-            dp1fma12 = propN.density * OpenArea * DischCoeff / std::sqrt(2.0 * PDROP * RhozAver) + dPBuoFlow;
-            if (BuoFlow > 0.0) {
-                fma21 = BuoFlow;
-                dp1fma21 = dPBuoFlow;
+            F[0] = propN.density * OpenArea * Fact * DischCoeff * std::sqrt(2.0 * PDROP / propN.density) + BuoFlow;
+            DF[0] = propN.density * OpenArea * DischCoeff / std::sqrt(2.0 * PDROP * propN.density) - dPBuoFlow;
+            if (NF > 1) {
+                F[1] = -1.0 * BuoFlow;
+                DF[1] = dPBuoFlow;
             }
         } else { // PDROP.LT.0.0
-            fma21 = propM.density * OpenArea * Fact * DischCoeff * std::sqrt(2.0 * std::abs(PDROP) / RhozAver) + BuoFlow;
-            dp1fma21 = -propM.density * OpenArea * DischCoeff / std::sqrt(2.0 * std::abs(PDROP) * RhozAver) + dPBuoFlow;
-            if (BuoFlow > 0.0) {
-                fma12 = BuoFlow;
-                dp1fma12 = dPBuoFlow;
+            F[0] = -1.0 * propM.density * OpenArea * Fact * DischCoeff * std::sqrt(2.0 * std::abs(PDROP) / propM.density) - BuoFlow;
+            DF[0] = propM.density * OpenArea * DischCoeff / std::sqrt(2.0 * std::abs(PDROP) * propM.density) + dPBuoFlow;
+            if (NF > 1) {
+                F[1] = BuoFlow;
+                DF[1] = -1.0 * dPBuoFlow;
             }
         }
 
-        F[0] = fma12 - fma21;
-        DF[0] = dp1fma12 - dp1fma21;
-        F[1] = 0.0;
-        if (fma12 != 0.0 && fma21 != 0.0) {
-            F[1] = BuoFlow;
-        }
-        DF[1] = 0.0;
+        //F[0] = fma12 - fma21;
+        //DF[0] = dp1fma12 - dp1fma21;
+        //F[1] = 0.0;
+        //if (fma12 != 0.0 && fma21 != 0.0) {
+        //    F[1] = BuoFlow;
+        //}
+        //DF[1] = 0.0;
 
-        return 1;
+        return NF;
     }
 
     int SpecifiedMassFlow::calculate([[maybe_unused]] EnergyPlusData &state,

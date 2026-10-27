@@ -3211,7 +3211,7 @@ namespace AirflowNetwork {
         dPBuoFlow = 0.0;
 
         if ((state.afn->AirflowNetworkLinkageData(i).NodeHeights[0] > state.afn->AirflowNetworkLinkageData(i).NodeHeights[1] && propN.density > propM.density) || 
-            (state.afn->AirflowNetworkLinkageData(i).NodeHeights[0] > state.afn->AirflowNetworkLinkageData(i).NodeHeights[1] && propN.density < propM.density)) {
+            (state.afn->AirflowNetworkLinkageData(i).NodeHeights[0] < state.afn->AirflowNetworkLinkageData(i).NodeHeights[1] && propN.density < propM.density)) {
 
         //    // Node N is upper zone
         //    if (propN.density > propM.density) {

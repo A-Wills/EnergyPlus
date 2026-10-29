@@ -13730,22 +13730,23 @@ namespace AirflowNetwork {
                 AirflowNetworkLinkSimu(i).FLOW = 0.0;
                 AirflowNetworkLinkSimu(i).FLOW2 = -AFLOW(i);
             }
-            if (AirflowNetworkCompData(AirflowNetworkLinkageData(i).CompNum).CompTypeNum == iComponentTypeNum::HOP) {
-                if (AFLOW(i) > 0.0) {
-                    AirflowNetworkLinkSimu(i).FLOW = AFLOW(i) + AFLOW2(i);
-                    AirflowNetworkLinkSimu(i).FLOW2 = AFLOW2(i);
-                } else {
-                    AirflowNetworkLinkSimu(i).FLOW = AFLOW2(i);
-                    AirflowNetworkLinkSimu(i).FLOW2 = -AFLOW(i) + AFLOW2(i);
-                }
-            }
+            //if (AirflowNetworkCompData(AirflowNetworkLinkageData(i).CompNum).CompTypeNum == iComponentTypeNum::HOP) {
+            //    if (AFLOW(i) > 0.0) {
+            //        AirflowNetworkLinkSimu(i).FLOW = AFLOW(i) + AFLOW2(i);
+            //        AirflowNetworkLinkSimu(i).FLOW2 = AFLOW2(i);
+            //    } else {
+            //        AirflowNetworkLinkSimu(i).FLOW = AFLOW2(i);
+            //        AirflowNetworkLinkSimu(i).FLOW2 = -AFLOW(i) + AFLOW2(i);
+            //    }
+            //}
             if (AirflowNetworkLinkageData(i).DetOpenNum > 0) {
                 if (AFLOW2(i) != 0.0) {
                     AirflowNetworkLinkSimu(i).FLOW = AFLOW(i) + AFLOW2(i);
                     AirflowNetworkLinkSimu(i).FLOW2 = AFLOW2(i);
                 }
             }
-            if (AirflowNetworkCompData(AirflowNetworkLinkageData(i).CompNum).CompTypeNum == iComponentTypeNum::SOP && AFLOW2(i) != 0.0) {
+            if ((AirflowNetworkCompData(AirflowNetworkLinkageData(i).CompNum).CompTypeNum == iComponentTypeNum::SOP ||
+                AirflowNetworkCompData(AirflowNetworkLinkageData(i).CompNum).CompTypeNum == iComponentTypeNum::HOP) && AFLOW2(i) != 0.0) {
                 if (AFLOW(i) >= 0.0) {
                     AirflowNetworkLinkSimu(i).FLOW = AFLOW(i);
                     AirflowNetworkLinkSimu(i).FLOW2 = std::abs(AFLOW2(i));
